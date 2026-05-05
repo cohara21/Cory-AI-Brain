@@ -1,10 +1,12 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { useEffect, useRef, useState } from 'react';
+import { DefaultChatTransport } from 'ai';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 
 export default function CoryChat() {
   const [isOpen, setIsOpen] = useState(false);
+  const [localInput, setLocalInput] = useState('');
   const [tankData, setTankData] = useState<any | null>(null);
 
   useEffect(() => {
@@ -20,14 +22,16 @@ export default function CoryChat() {
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
   }, []);
-  const { messages, input, handleInputChange, handleSubmit, status, error } = useChat({
+
+  const transport = useMemo(() => new DefaultChatTransport({
     api: '/api/chat',
-    body: {
-      tankData: tankData,
-    },
-    onFinish: () => {
-      console.log("Chat finished with data:", tankData);
-    }
+    body: () => ({
+      tankData,
+    })
+  }), [tankData]);
+
+  const { messages, sendMessage, status, error } = useChat({
+    transport,
   });
 
   const isLoading = status === 'streaming' || status === 'submitted';
@@ -39,6 +43,16 @@ export default function CoryChat() {
       bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
     }
   }, [messages, status]);
+
+  const onSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const trimmed = localInput.trim();
+    if (!trimmed) return;
+
+    console.log('CLIENT SENDING TANK DATA:', tankData);
+    sendMessage({ text: trimmed });
+    setLocalInput('');
+  };
 
   return (
     <>
@@ -78,15 +92,15 @@ export default function CoryChat() {
           )}
         </div>
 
-        <form className="cory-input-row" onSubmit={handleSubmit}>
+        <form className="cory-input-row" onSubmit={onSubmit}>
           <input
             className="cory-input"
             type="text"
             placeholder="Ask Cory about the reef..."
-            value={input}
-            onChange={handleInputChange}
+            value={localInput}
+            onChange={(e) => setLocalInput(e.target.value)}
           />
-          <button type="submit" className="cory-send" disabled={isLoading || !input.trim()} aria-label="Send">
+          <button type="submit" className="cory-send" disabled={isLoading || !localInput.trim()} aria-label="Send">
             <img src="/assets/bb543680-485a-4fa9-b5ed-481596dd53fd.svg" alt="" onError={(e) => e.currentTarget.style.display = 'none'} />
           </button>
         </form>
