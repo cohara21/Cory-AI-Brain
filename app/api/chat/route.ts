@@ -2,10 +2,18 @@ import { google } from '@ai-sdk/google';
 import { streamText } from 'ai';
 
 export async function POST(req: Request) {
-  const { messages, tankData } = await req.json();
-  const data = tankData?.data || tankData;
-  const temp = data?.temperature ? Math.round(data.temperature * 10) / 10 : '78.5';
-  const ph = data?.ph ? Math.round(data.ph * 10) / 10 : '8.2';
+  const body = await req.json();
+  console.log('DEBUG: Full Request Body:', JSON.stringify(body, null, 2));
+
+  // Look for the data in every possible nesting level
+  const tank = body.tankData || body.data || body;
+  const temperature = tank.temperature || tank.temp || (body.messages && body.tankData?.temperature);
+
+  console.log('DEBUG: Found Temperature:', temperature);
+
+  const messages = body.messages;
+  const temp = temperature ? Math.round(temperature * 10) / 10 : '78.5';
+  const ph = tank?.ph ? Math.round(tank.ph * 10) / 10 : '8.2';
 
   const normalizedMessages = (Array.isArray(messages) ? messages : [])
     .map((m: any) => {
