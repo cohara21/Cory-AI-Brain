@@ -10,7 +10,7 @@ export default function CoryChat() {
   const [tankData, setTankData] = useState<any | null>(null);
 
   useEffect(() => {
-    const handleMessage = (event) => {
+    const handleMessage = (event: MessageEvent) => {
       console.log("Iframe received raw event:", event.data);
 
       if (event.data && event.data.type === 'UPDATE_TANK_DATA') {
