@@ -1,21 +1,20 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import type * as React from 'react';
 import { useEffect, useRef, useState } from 'react';
 
 export default function CoryChat() {
   const [isOpen, setIsOpen] = useState(false);
   const [localInput, setLocalInput] = useState('');
-  const [tankData, setTankData] = useState<any | null>(null);
+  const [tankData, setTankData] = useState<unknown>(null);
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      console.log("Iframe received raw event:", event.data);
+      console.log('Iframe received raw event:', event.data);
 
       if (event.data && event.data.type === 'UPDATE_TANK_DATA') {
-        console.log("MATCH FOUND! Setting tankData to:", event.data.data);
-        setTankData(() => event.data.data);
+        console.log('MATCH FOUND! Setting tankData to:', event.data.data);
+        setTankData(event.data.data);
       }
     };
 
@@ -23,13 +22,10 @@ export default function CoryChat() {
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
-  const { messages, handleSubmit, status, error } = useChat({
-    api: '/api/chat',
-  });
+  const { messages, sendMessage, status, error } = useChat();
 
   const isLoading = status === 'streaming' || status === 'submitted';
 
-  // Auto-scroll to bottom when messages change or streaming updates
   const bodyRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (bodyRef.current) {
@@ -37,13 +33,15 @@ export default function CoryChat() {
     }
   }, [messages, status]);
 
-  const customSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    console.log("SENDING TO API NOW:", tankData);
-    handleSubmit(e, {
-      body: {
-        tankData: tankData,
-      },
-    });
+  const handleSubmitWithData = (e: any) => {
+    if (e?.preventDefault) {
+      e.preventDefault();
+    }
+    const text = localInput.trim();
+    if (!text || isLoading) {
+      return;
+    }
+    void sendMessage({ text }, { body: { tankData } });
     setLocalInput('');
   };
 
@@ -59,7 +57,9 @@ export default function CoryChat() {
             <img src="/assets/coryforcard.svg" alt="" />
           </div>
           <p className="cory-name">Cory</p>
-          <button className="cory-close" type="button" onClick={() => setIsOpen(false)} aria-label="Close chat">×</button>
+          <button className="cory-close" type="button" onClick={() => setIsOpen(false)} aria-label="Close chat">
+            ×
+          </button>
         </div>
 
         <div className="cory-body" ref={bodyRef}>
@@ -68,9 +68,9 @@ export default function CoryChat() {
               <p>Start a conversation with Cory about the reef!</p>
             </div>
           )}
-          {messages.map(m => (
+          {messages.map((m) => (
             <div key={m.id} className={`cory-bubble ${m.role === 'user' ? 'user' : ''}`}>
-              <p>{m.parts?.map(p => p.type === 'text' ? p.text : '').join('') || ''}</p>
+              <p>{m.parts?.map((p) => (p.type === 'text' ? p.text : '')).join('') || ''}</p>
             </div>
           ))}
           {isLoading && (
@@ -85,7 +85,7 @@ export default function CoryChat() {
           )}
         </div>
 
-        <form className="cory-input-row" onSubmit={customSubmit}>
+        <form className="cory-input-row" onSubmit={handleSubmitWithData}>
           <input
             className="cory-input"
             type="text"
@@ -94,7 +94,7 @@ export default function CoryChat() {
             onChange={(e) => setLocalInput(e.target.value)}
           />
           <button type="submit" className="cory-send" disabled={isLoading || !localInput.trim()} aria-label="Send">
-            <img src="/assets/bb543680-485a-4fa9-b5ed-481596dd53fd.svg" alt="" onError={(e) => e.currentTarget.style.display = 'none'} />
+            <img src="/assets/bb543680-485a-4fa9-b5ed-481596dd53fd.svg" alt="" onError={(e) => (e.currentTarget.style.display = 'none')} />
           </button>
         </form>
 
