@@ -42,12 +42,30 @@ export default function CoryChat() {
     }
   }, [messages, status]);
 
-  const onSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const trimmed = localInput.trim();
     if (!trimmed) return;
 
+    // Primary UI send via useChat
     sendMessage({ text: trimmed });
+
+    // Safety send: ensure the API receives the latest tankData state
+    try {
+      const safetyPayload = {
+        messages: [...messages, { role: 'user', text: trimmed }],
+        tankData: tankData
+      };
+      console.log('Safety SEND PAYLOAD:', safetyPayload);
+      await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(safetyPayload)
+      });
+    } catch (err) {
+      console.error('Safety send failed', err);
+    }
+
     setLocalInput('');
   };
 

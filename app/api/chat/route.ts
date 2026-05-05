@@ -2,9 +2,7 @@ import { google } from '@ai-sdk/google';
 import { streamText } from 'ai';
 
 export async function POST(req: Request) {
-  const body = await req.json();
-  const messages = body.messages ?? [];
-  const tankData = body.tankData ?? null;
+  const { messages = [], tankData = null } = await req.json();
 
   const temp = tankData?.temperature || tankData?.temp || 'N/A';
   const ph = tankData?.ph || 'N/A';
