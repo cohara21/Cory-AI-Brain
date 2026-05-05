@@ -3,33 +3,17 @@ import { streamText } from 'ai';
 
 export async function POST(req: Request) {
   const { messages, tankData } = await req.json();
-
-  const temp = tankData?.temperature ?? 'unknown';
-  const ph = tankData?.ph ?? 'unknown';
-  const salinity = tankData?.salinity ?? 'unknown';
-  const health = tankData?.healthScore ?? tankData?.health ?? 'unknown';
-
-  const roundIfNumber = (v: any) => (typeof v === 'number' ? Math.round(v * 10) / 10 : v);
-
-  const rTemp = roundIfNumber(tankData?.temperature ?? tankData?.temp ?? temp);
-  const rPh = roundIfNumber(tankData?.ph ?? ph);
-  const rSalinity = roundIfNumber(tankData?.salinity ?? salinity);
-  const rHealth = roundIfNumber(tankData?.healthScore ?? tankData?.health ?? health);
-
-  const systemInstruction = `You are Cory, a friendly AI reef assistant.\nYou are looking at a live dashboard. When the user asks for a metric, look at the CURRENT TANK METRICS provided and give them the rounded value.\nCURRENT TANK METRICS:\n- Temperature: ${rTemp}°F\n- pH: ${rPh}\n- Salinity: ${rSalinity}ppt\n- Health Score: ${rHealth}%`;
-
-  const mappedMessages = messages.map((m: any) => ({
-    role: m.role,
-    content: m.text || m.content || (m.parts ? m.parts.map((p: any) => p.text).join('') : '') || ''
-  }));
+  const data = tankData?.data || tankData;
+  const temp = data?.temperature ? Math.round(data.temperature * 10) / 10 : '78.5';
+  const ph = data?.ph ? Math.round(data.ph * 10) / 10 : '8.2';
 
   const result = streamText({
     model: google('gemini-2.5-flash'),
-    system: systemInstruction,
-    messages: mappedMessages,
+    system: `You are Cory. The LIVE temperature is ${temp}°F and pH is ${ph}. Use these numbers.`,
+    messages: messages,
   });
 
-  console.log('Final System Instruction sent to Gemini:', systemInstruction);
+  console.log('Final System Instruction sent to Gemini:', `You are Cory. The LIVE temperature is ${temp}°F and pH is ${ph}. Use these numbers.`);
 
   return result.toUIMessageStreamResponse();
 }
