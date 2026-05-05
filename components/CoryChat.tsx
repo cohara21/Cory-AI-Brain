@@ -31,11 +31,31 @@ function getLiveTankData() {
 export default function CoryChat() {
   const [isOpen, setIsOpen] = useState(false);
   const [localInput, setLocalInput] = useState('');
+  const [tankData, setTankData] = useState<any | null>(null);
 
-  // Use a ref-based transport so we can update the body dynamically
+  // Listen for postMessage updates from a parent window and store latest tank data
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      try {
+        if (event?.data?.type === 'UPDATE_TANK_DATA') {
+          setTankData(event.data.data ?? null);
+        }
+      } catch (e) {
+        // ignore malformed messages
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
+  // Use a ref-based transport so we can update the body dynamically (includes tankData)
   const transportRef = useRef(new DefaultChatTransport({
     api: '/api/chat',
-    body: () => ({ data: getLiveTankData() })
+    body: () => ({
+      data: getLiveTankData(),
+      tankData: tankData
+    })
   }));
 
   const { messages, sendMessage, status, error } = useChat({

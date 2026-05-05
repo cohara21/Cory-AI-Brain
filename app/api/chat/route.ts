@@ -12,7 +12,22 @@ export async function POST(req: Request) {
     activeAlerts: ['No current alerts']
   };
 
-  const systemPrompt = `You are Cory, a friendly, optimistic AI marine biology assistant for the Coral Keepers educational platform. You refer to the coral reef as your 'family'.
+  // Accept optional live tankData (preferred) sent from the client.
+  const tankData = body.tankData ?? null;
+
+  // If we received explicit live tankData, create a short, strict context
+  // that the model must follow when asked about current tank numbers.
+  let dynamicTankContext = '';
+  if (tankData) {
+    const t = tankData.temperature ?? tankData.temp ?? data.temperature ?? 'N/A';
+    const s = tankData.salinity ?? data.salinity ?? 'N/A';
+    const p = tankData.ph ?? data.ph ?? 'N/A';
+    const h = tankData.healthScore ?? tankData.health ?? data.healthScore ?? 'N/A';
+
+    dynamicTankContext = `Current Live Tank Context: Temperature: ${t}, Salinity: ${s}, pH: ${p}, Health Score: ${h}. ALWAYS use these exact numbers if the user asks about the current state of the tank.`;
+  }
+
+  const systemPrompt = `${dynamicTankContext ? dynamicTankContext + "\n\n" : ''}You are Cory, a friendly, optimistic AI marine biology assistant for the Coral Keepers educational platform. You refer to the coral reef as your 'family'.
 
 CURRENT TANK STATUS (live readings):
 
