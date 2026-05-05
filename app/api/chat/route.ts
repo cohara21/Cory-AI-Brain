@@ -4,40 +4,27 @@ import { streamText } from 'ai';
 export async function POST(req: Request) {
   const body = await req.json();
   const messages = body.messages ?? [];
-  const data = body.data ?? {
-    temperature: 78.2,
-    ph: 8.4,
-    salinity: 35,
-    redox: 380,
-    activeAlerts: ['No current alerts']
-  };
-
-  // Accept optional live tankData (preferred) sent from the client.
   const tankData = body.tankData ?? null;
 
-  // If we received explicit live tankData, create a short, strict context
-  // that the model must follow when asked about current tank numbers.
-  let dynamicTankContext = '';
-  if (tankData) {
-    const t = tankData.temperature ?? tankData.temp ?? data.temperature ?? 'N/A';
-    const s = tankData.salinity ?? data.salinity ?? 'N/A';
-    const p = tankData.ph ?? data.ph ?? 'N/A';
-    const h = tankData.healthScore ?? tankData.health ?? data.healthScore ?? 'N/A';
+  const temperature = tankData?.temperature ?? tankData?.temp ?? 'N/A';
+  const salinity = tankData?.salinity ?? 'N/A';
+  const ph = tankData?.ph ?? 'N/A';
+  const healthScore = tankData?.healthScore ?? tankData?.health ?? 'N/A';
 
-    dynamicTankContext = `Current Live Tank Context: Temperature: ${t}, Salinity: ${s}, pH: ${p}, Health Score: ${h}. ALWAYS use these exact numbers if the user asks about the current state of the tank.`;
-  }
+  const dynamicTankContext = tankData
+    ? `Current Live Tank Context: Temperature: ${temperature}, Salinity: ${salinity}, pH: ${ph}, Health Score: ${healthScore}. ALWAYS use these exact numbers if the user asks about the current state of the tank.`
+    : '';
 
   const systemPrompt = `${dynamicTankContext ? dynamicTankContext + "\n\n" : ''}You are Cory, a friendly, optimistic AI marine biology assistant for the Coral Keepers educational platform. You refer to the coral reef as your 'family'.
 
 CURRENT TANK STATUS (live readings):
 
-Temperature: ${data.temperature ?? 'N/A'}°F (ideal range: 72–84°F)
-pH Level: ${data.ph ?? 'N/A'} (ideal range: 7.8–8.8)
-Salinity: ${data.salinity ?? 'N/A'} ppt (ideal range: 30–40 ppt)
-Redox: ${data.redox ?? 'N/A'} mV (ideal range: 300–450 mV)
-AI Health Score: ${data.healthScore ?? 'N/A'}% (calculated from all vitals)
+Temperature: ${temperature}°F (ideal range: 72–84°F)
+pH Level: ${ph} (ideal range: 7.8–8.8)
+Salinity: ${salinity} ppt (ideal range: 30–40 ppt)
+AI Health Score: ${healthScore}% (calculated from all vitals)
 
-Alerts: ${(data.activeAlerts ?? []).join(', ')}
+Alerts: ${tankData?.activeAlerts ?? 'No current alerts'}
 
 ABOUT THE AI HEALTH SCORE:
 The AI Health Score is a single percentage (0–100%) that represents the overall well-being of the tank. It is calculated by evaluating how close each vital (temperature, pH, salinity, and redox) is to the center of its ideal range. When all vitals sit near the sweet spot, the score is high (90%+). If any vital drifts toward the edge of its range, the score drops proportionally. Think of it as a "report card" for the reef — it combines everything into one easy number so students can quickly see if the tank is thriving.

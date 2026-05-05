@@ -4,44 +4,16 @@ import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { FormEvent, useEffect, useRef, useState } from 'react';
 
-const defaultTankData = {
-  temperature: 78.2,
-  ph: 8.4,
-  salinity: 35,
-  redox: 380,
-  healthScore: 94,
-  activeAlerts: ['No current alerts']
-};
-
-function getLiveTankData() {
-  const w = typeof window !== 'undefined' ? (window as any).__tankMetrics : null;
-  if (w) {
-    return {
-      temperature: Number(w.temp?.toFixed(1) ?? defaultTankData.temperature),
-      ph: Number(w.ph?.toFixed(2) ?? defaultTankData.ph),
-      salinity: Math.round(w.salinity ?? defaultTankData.salinity),
-      redox: Math.round(w.redox ?? defaultTankData.redox),
-      healthScore: Math.round(w.health ?? defaultTankData.healthScore),
-      activeAlerts: defaultTankData.activeAlerts
-    };
-  }
-  return defaultTankData;
-}
-
 export default function CoryChat() {
   const [isOpen, setIsOpen] = useState(false);
   const [localInput, setLocalInput] = useState('');
   const [tankData, setTankData] = useState<any | null>(null);
 
-  // Listen for postMessage updates from a parent window and store latest tank data
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      try {
-        if (event?.data?.type === 'UPDATE_TANK_DATA') {
-          setTankData(event.data.data ?? null);
-        }
-      } catch (e) {
-        // ignore malformed messages
+      if (event.data && event.data.type === 'UPDATE_TANK_DATA') {
+        console.log("BRAIN CAUGHT DATA:", event.data.data); // X-Ray log for the brain
+        setTankData(event.data.data);
       }
     };
 
@@ -49,17 +21,13 @@ export default function CoryChat() {
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
-  // Use a ref-based transport so we can update the body dynamically (includes tankData)
-  const transportRef = useRef(new DefaultChatTransport({
+  const transport = new DefaultChatTransport({
     api: '/api/chat',
-    body: () => ({
-      data: getLiveTankData(),
-      tankData: tankData
-    })
-  }));
+    body: () => ({ tankData })
+  });
 
   const { messages, sendMessage, status, error } = useChat({
-    transport: transportRef.current
+    transport
   });
 
   const isLoading = status === 'streaming' || status === 'submitted';
