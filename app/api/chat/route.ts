@@ -7,10 +7,46 @@ export async function POST(req: Request) {
   const temp = data?.temperature ? Math.round(data.temperature * 10) / 10 : '78.5';
   const ph = data?.ph ? Math.round(data.ph * 10) / 10 : '8.2';
 
-  const result = streamText({
+  const normalizedMessages = (Array.isArray(messages) ? messages : [])
+    .map((m: any) => {
+      const role = m?.role === 'model'
+        ? 'assistant'
+        : m?.role === 'assistant'
+          ? 'assistant'
+          : m?.role === 'user'
+            ? 'user'
+            : null;
+
+      const content = typeof m?.content === 'string'
+        ? m.content
+        : typeof m?.text === 'string'
+          ? m.text
+          : Array.isArray(m?.parts)
+            ? m.parts
+                .filter((p: any) => p?.type === 'text' && typeof p?.text === 'string')
+                .map((p: any) => p.text)
+                .join('')
+            : '';
+
+      if (!role || !content.trim()) {
+        return null;
+      }
+
+      return { role, content };
+    })
+    .filter(Boolean) as Array<{ role: 'user' | 'assistant'; content: string }>;
+
+  if (normalizedMessages.length === 0) {
+    return new Response(
+      JSON.stringify({ error: 'No valid chat messages were provided.' }),
+      { status: 400, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
+  const result = await streamText({
     model: google('gemini-2.5-flash'),
-    system: `You are Cory. The LIVE temperature is ${temp}°F and pH is ${ph}. Use these numbers.`,
-    messages: messages,
+    system: `You are Cory. The LIVE temperature is ${temp}°F and pH is ${ph}. Always use these numbers.`,
+    messages: normalizedMessages,
   });
 
   console.log('Final System Instruction sent to Gemini:', `You are Cory. The LIVE temperature is ${temp}°F and pH is ${ph}. Use these numbers.`);
