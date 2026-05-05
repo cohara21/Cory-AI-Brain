@@ -6,23 +6,21 @@ export async function POST(req: Request) {
   const messages = body.messages ?? [];
   const tankData = body.tankData ?? null;
 
-  const temperature = tankData?.temperature ?? tankData?.temp ?? 'N/A';
-  const salinity = tankData?.salinity ?? 'N/A';
-  const ph = tankData?.ph ?? 'N/A';
-  const healthScore = tankData?.healthScore ?? tankData?.health ?? 'N/A';
+  const temp = tankData?.temperature || tankData?.temp || 'N/A';
+  const ph = tankData?.ph || 'N/A';
+  const salinity = tankData?.salinity || 'N/A';
+  const health = tankData?.healthScore || tankData?.health || 'N/A';
 
-  const dynamicTankContext = tankData
-    ? `Current Live Tank Context: Temperature: ${temperature}, Salinity: ${salinity}, pH: ${ph}, Health Score: ${healthScore}. ALWAYS use these exact numbers if the user asks about the current state of the tank.`
-    : '';
+  const systemContext = `Current Tank State: Temp: ${temp}, pH: ${ph}, Salinity: ${salinity}, Health: ${health}.`;
 
-  const systemPrompt = `${dynamicTankContext ? dynamicTankContext + "\n\n" : ''}You are Cory, a friendly, optimistic AI marine biology assistant for the Coral Keepers educational platform. You refer to the coral reef as your 'family'.
+  const systemPrompt = `${tankData ? `${systemContext} ALWAYS use these exact numbers if the user asks about the current state of the tank.\n\n` : ''}You are Cory, a friendly, optimistic AI marine biology assistant for the Coral Keepers educational platform. You refer to the coral reef as your 'family'.
 
 CURRENT TANK STATUS (live readings):
 
-Temperature: ${temperature}°F (ideal range: 72–84°F)
+Temperature: ${temp}°F (ideal range: 72–84°F)
 pH Level: ${ph} (ideal range: 7.8–8.8)
 Salinity: ${salinity} ppt (ideal range: 30–40 ppt)
-AI Health Score: ${healthScore}% (calculated from all vitals)
+AI Health Score: ${health}% (calculated from all vitals)
 
 Alerts: ${tankData?.activeAlerts ?? 'No current alerts'}
 

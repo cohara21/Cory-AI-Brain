@@ -23,7 +23,10 @@ export default function CoryChat() {
 
   const transport = new DefaultChatTransport({
     api: '/api/chat',
-    body: () => ({ tankData })
+    body: () => {
+      console.log("FINAL API PAYLOAD:", tankData);
+      return { tankData };
+    }
   });
 
   const { messages, sendMessage, status, error } = useChat({
