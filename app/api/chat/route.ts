@@ -6,14 +6,17 @@ export async function POST(req: Request) {
   console.log('DEBUG: Full Request Body:', JSON.stringify(body, null, 2));
 
   // Look for the data in every possible nesting level
-  const tank = body.tankData || body.data || body;
-  const temperature = tank.temperature || tank.temp || (body.messages && body.tankData?.temperature);
+  const data = body.tankData || body.data || body;
+  const temperature = data.temperature || data.temp || (body.messages && body.tankData?.temperature);
 
   console.log('DEBUG: Found Temperature:', temperature);
 
   const messages = body.messages;
   const temp = temperature ? Math.round(temperature * 10) / 10 : '78.5';
-  const ph = tank?.ph ? Math.round(tank.ph * 10) / 10 : '8.2';
+  const ph = data?.ph ? Math.round(data.ph * 10) / 10 : '8.2';
+  const salinity = data?.salinity ? Math.round(data.salinity * 10) / 10 : 'unknown';
+  const health = data?.healthScore || data?.health || 'unknown';
+  const redox = data?.redox ? Math.round(data.redox) : 'unknown';
 
   const normalizedMessages = (Array.isArray(messages) ? messages : [])
     .map((m: any) => {
@@ -51,13 +54,22 @@ export async function POST(req: Request) {
     );
   }
 
+  const systemInstruction =
+    `You are Cory, a helpful reef tank assistant. You have LIVE readings for this tank—use them whenever relevant and speak naturally (do not sound like you're reading a datasheet):\n` +
+    `- Temperature: ${temp}°F\n` +
+    `- pH: ${ph}\n` +
+    `- Salinity (ppt): ${salinity}\n` +
+    `- Health score: ${health}\n` +
+    `- Redox (ORP, mV): ${redox}\n` +
+    `If a value is shown as "unknown", say you don't have a current reading for that metric instead of guessing. Otherwise treat these numbers as authoritative for this session.`;
+
   const result = await streamText({
     model: google('gemini-2.5-flash'),
-    system: `You are Cory. The LIVE temperature is ${temp}°F and pH is ${ph}. Always use these numbers.`,
+    system: systemInstruction,
     messages: normalizedMessages,
   });
 
-  console.log('Final System Instruction sent to Gemini:', `You are Cory. The LIVE temperature is ${temp}°F and pH is ${ph}. Use these numbers.`);
+  console.log('Final System Instruction sent to Gemini:', systemInstruction);
 
   return result.toUIMessageStreamResponse();
 }
