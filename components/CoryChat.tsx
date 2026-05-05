@@ -2,7 +2,7 @@
 
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
-import { FormEvent, useEffect, useRef, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 
 export default function CoryChat() {
   const [isOpen, setIsOpen] = useState(false);
@@ -10,10 +10,12 @@ export default function CoryChat() {
   const [tankData, setTankData] = useState<any | null>(null);
 
   useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
+    const handleMessage = (event) => {
+      console.log("Iframe received raw event:", event.data);
+
       if (event.data && event.data.type === 'UPDATE_TANK_DATA') {
-        console.log("BRAIN CAUGHT DATA:", event.data.data); // X-Ray log for the brain
-        setTankData(event.data.data);
+        console.log("MATCH FOUND! Setting tankData to:", event.data.data);
+        setTankData(() => event.data.data);
       }
     };
 
@@ -21,13 +23,10 @@ export default function CoryChat() {
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
-  const transport = new DefaultChatTransport({
+  const transport = useMemo(() => new DefaultChatTransport({
     api: '/api/chat',
-    body: () => {
-      console.log("FINAL API PAYLOAD:", tankData);
-      return { tankData };
-    }
-  });
+    body: () => ({ tankData })
+  }), [tankData]);
 
   const { messages, sendMessage, status, error } = useChat({
     transport
