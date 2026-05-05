@@ -1,11 +1,10 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export default function CoryChat() {
   const [isOpen, setIsOpen] = useState(false);
-  const [localInput, setLocalInput] = useState('');
   const [tankData, setTankData] = useState<any | null>(null);
 
   useEffect(() => {
@@ -21,14 +20,14 @@ export default function CoryChat() {
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
   }, []);
-  
-  }), [tankData]);
+  const { messages, input, handleInputChange, handleSubmit, status, error } = useChat({
     api: '/api/chat',
     body: {
       tankData: tankData,
     },
-  const { messages, sendMessage, status, error } = useChat({
-    transport
+    onFinish: () => {
+      console.log("Chat finished with data:", tankData);
+    }
   });
 
   const isLoading = status === 'streaming' || status === 'submitted';
@@ -40,33 +39,6 @@ export default function CoryChat() {
       bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
     }
   }, [messages, status]);
-
-  const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const trimmed = localInput.trim();
-    if (!trimmed) return;
-
-    // Primary UI send via useChat
-    sendMessage({ text: trimmed });
-
-    // Safety send: ensure the API receives the latest tankData state
-    try {
-      const safetyPayload = {
-        messages: [...messages, { role: 'user', text: trimmed }],
-        tankData: tankData
-      };
-      console.log('Safety SEND PAYLOAD:', safetyPayload);
-      await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(safetyPayload)
-      });
-    } catch (err) {
-      console.error('Safety send failed', err);
-    }
-
-    setLocalInput('');
-  };
 
   return (
     <>
@@ -106,15 +78,15 @@ export default function CoryChat() {
           )}
         </div>
 
-        <form className="cory-input-row" onSubmit={onSubmit}>
+        <form className="cory-input-row" onSubmit={handleSubmit}>
           <input
             className="cory-input"
             type="text"
             placeholder="Ask Cory about the reef..."
-            value={localInput}
-            onChange={(e) => setLocalInput(e.target.value)}
+            value={input}
+            onChange={handleInputChange}
           />
-          <button type="submit" className="cory-send" disabled={isLoading || !localInput.trim()} aria-label="Send">
+          <button type="submit" className="cory-send" disabled={isLoading || !input.trim()} aria-label="Send">
             <img src="/assets/bb543680-485a-4fa9-b5ed-481596dd53fd.svg" alt="" onError={(e) => e.currentTarget.style.display = 'none'} />
           </button>
         </form>
