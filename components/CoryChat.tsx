@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 
 export default function CoryChat() {
   const [isOpen, setIsOpen] = useState(false);
+  const [localInput, setLocalInput] = useState('');
   const [tankData, setTankData] = useState<any | null>(null);
 
   useEffect(() => {
@@ -22,7 +23,7 @@ export default function CoryChat() {
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
-  const { messages, input, handleInputChange, handleSubmit, status, error } = useChat({
+  const { messages, handleSubmit, status, error } = useChat({
     api: '/api/chat',
   });
 
@@ -43,6 +44,7 @@ export default function CoryChat() {
         tankData: tankData,
       },
     });
+    setLocalInput('');
   };
 
   return (
@@ -88,10 +90,10 @@ export default function CoryChat() {
             className="cory-input"
             type="text"
             placeholder="Ask Cory about the reef..."
-            value={input}
-            onChange={handleInputChange}
+            value={localInput}
+            onChange={(e) => setLocalInput(e.target.value)}
           />
-          <button type="submit" className="cory-send" disabled={isLoading || !input.trim()} aria-label="Send">
+          <button type="submit" className="cory-send" disabled={isLoading || !localInput.trim()} aria-label="Send">
             <img src="/assets/bb543680-485a-4fa9-b5ed-481596dd53fd.svg" alt="" onError={(e) => e.currentTarget.style.display = 'none'} />
           </button>
         </form>
