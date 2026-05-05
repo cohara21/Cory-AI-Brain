@@ -9,7 +9,14 @@ export async function POST(req: Request) {
   const salinity = tankData?.salinity ?? 'unknown';
   const health = tankData?.healthScore ?? tankData?.health ?? 'unknown';
 
-  const systemInstruction = `You are Cory, a friendly AI reef assistant. \nCURRENT TANK METRICS:\n- Temperature: ${temp}°F\n- pH: ${ph}\n- Salinity: ${salinity}ppt\n- Health Score: ${health}%\n\nUse these specific numbers to answer the user's questions. If the values are 'unknown', politely ask the user to wait a moment for the sensors to sync.`;
+  const roundIfNumber = (v: any) => (typeof v === 'number' ? Math.round(v * 10) / 10 : v);
+
+  const rTemp = roundIfNumber(tankData?.temperature ?? tankData?.temp ?? temp);
+  const rPh = roundIfNumber(tankData?.ph ?? ph);
+  const rSalinity = roundIfNumber(tankData?.salinity ?? salinity);
+  const rHealth = roundIfNumber(tankData?.healthScore ?? tankData?.health ?? health);
+
+  const systemInstruction = `You are Cory, a friendly AI reef assistant.\nYou are looking at a live dashboard. When the user asks for a metric, look at the CURRENT TANK METRICS provided and give them the rounded value.\nCURRENT TANK METRICS:\n- Temperature: ${rTemp}°F\n- pH: ${rPh}\n- Salinity: ${rSalinity}ppt\n- Health Score: ${rHealth}%`;
 
   const mappedMessages = messages.map((m: any) => ({
     role: m.role,
