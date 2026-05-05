@@ -1,7 +1,6 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport } from 'ai';
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 
 export default function CoryChat() {
@@ -22,12 +21,12 @@ export default function CoryChat() {
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
   }, []);
-
-  const transport = useMemo(() => new DefaultChatTransport({
-    api: '/api/chat',
-    body: () => ({ tankData })
+  
   }), [tankData]);
-
+    api: '/api/chat',
+    body: {
+      tankData: tankData,
+    },
   const { messages, sendMessage, status, error } = useChat({
     transport
   });
