@@ -36,6 +36,7 @@ export default function Page() {
         .cory-bubble { width: fit-content; max-width: 85%; border-radius: 12px; background: #f3f6ff; border: 1px solid #dbe7ff; padding: 10px 14px; align-self: flex-start; }
         .cory-bubble.user { background: #0075de; border-color: #0075de; align-self: flex-end; }
         .cory-bubble p { margin: 0; font-size: 13px; line-height: 1.4; color: #000000; }
+        .cory-bubble p + p { margin-top: 8px; }
         .cory-bubble.user p { color: #ffffff; }
 
         .cory-input-row { height: 60px; border-top: 1px solid rgba(0, 0, 0, 0.05); display: flex; align-items: center; gap: 8px; padding: 0 12px; background: #ffffff; flex-shrink: 0; }

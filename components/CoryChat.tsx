@@ -1,7 +1,50 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+
+/**
+ * Gemini writes its replies in Markdown, so emphasis arrives as `**78.5°F**`.
+ * Printing that string straight into the bubble showed the asterisks to the
+ * reader — the formatting instruction became visual noise on top of the number
+ * it was meant to highlight.
+ *
+ * This renders **bold** and *italic* as real elements. It returns React nodes
+ * rather than an HTML string, so nothing the model produces can inject markup.
+ *
+ * Mid-stream a delimiter may not have closed yet ("at **78.5"); that fragment
+ * renders literally for a beat and resolves once the closing token arrives.
+ */
+/**
+ * The model separates paragraphs with a blank line. HTML collapses whitespace,
+ * so a three-paragraph answer was arriving as one unbroken block of text.
+ * Split on blank lines so each block becomes its own <p>.
+ */
+function splitIntoParagraphs(text: string): string[] {
+  const blocks = text.split(/\n{2,}/).map((b) => b.trim()).filter(Boolean);
+  return blocks.length > 0 ? blocks : [''];
+}
+
+function renderMarkdownEmphasis(text: string): ReactNode[] {
+  const pattern = /\*\*([^*]+)\*\*|\*([^*]+)\*/g;
+  const nodes: ReactNode[] = [];
+  let cursor = 0;
+  let key = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = pattern.exec(text)) !== null) {
+    if (match.index > cursor) nodes.push(text.slice(cursor, match.index));
+    if (match[1] !== undefined) {
+      nodes.push(<strong key={key++}>{match[1]}</strong>);
+    } else {
+      nodes.push(<em key={key++}>{match[2]}</em>);
+    }
+    cursor = pattern.lastIndex;
+  }
+  if (cursor < text.length) nodes.push(text.slice(cursor));
+
+  return nodes;
+}
 
 export default function CoryChat() {
   const [isOpen, setIsOpen] = useState(false);
@@ -68,11 +111,16 @@ export default function CoryChat() {
               <p>Start a conversation with Cory about the reef!</p>
             </div>
           )}
-          {messages.map((m) => (
-            <div key={m.id} className={`cory-bubble ${m.role === 'user' ? 'user' : ''}`}>
-              <p>{m.parts?.map((p) => (p.type === 'text' ? p.text : '')).join('') || ''}</p>
-            </div>
-          ))}
+          {messages.map((m) => {
+            const text = m.parts?.map((p) => (p.type === 'text' ? p.text : '')).join('') || '';
+            return (
+              <div key={m.id} className={`cory-bubble ${m.role === 'user' ? 'user' : ''}`}>
+                {splitIntoParagraphs(text).map((paragraph, i) => (
+                  <p key={i}>{renderMarkdownEmphasis(paragraph)}</p>
+                ))}
+              </div>
+            );
+          })}
           {isLoading && (
             <div className="cory-bubble typing">
               <p>Thinking...</p>
